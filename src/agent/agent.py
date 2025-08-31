@@ -1,4 +1,4 @@
-
+import logging
 from dataclasses import dataclass, field
 import json
 from typing import List, Callable, Dict, Any, Union
@@ -7,6 +7,9 @@ from agent.actions import Action, ActionRegistry
 from agent.environment import Environment
 from agent.memory import Memory
 from agent.goals import Goal
+from utils.logger import CustomLogger
+
+logger = CustomLogger(console_level="INFO", file_level="DEBUG")
 
 @dataclass
 class Prompt:
@@ -146,10 +149,8 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
 
     def parse_response(self, response: str) -> dict:
         """Parse LLM response into structured format by extracting the ```json block"""
-
         try:
             return json.loads(response)
-
         except Exception as e:
             return {
                 "tool": "terminate",
@@ -216,27 +217,42 @@ class Agent:
         memory = memory or Memory()
         self.set_current_task(memory, user_input)
 
-        for _ in range(max_iterations):
+        for i in range(max_iterations):
+            logger.info(f"--- Agent Iteration {i+1} ---")
+            # print(f"Iteration {i}")
             # Construct a prompt that includes the Goals, Actions, and the current Memory
             prompt = self.construct_prompt(self.goals, memory, self.actions)
 
-            print("Agent thinking...")
+            logger.info("Agent thinking...")
             # Generate a response from the agent
             response = self.prompt_llm_for_action(prompt)
-            print(f"Agent Decision: {response}")
+            logger.debug(f"Agent Decision: {response}")
+            should_terminate = self.should_terminate(response)
 
             # Determine which action the agent wants to execute
             action, invocation = self.get_action(response)
 
+            if not should_terminate:
+                try:
+                    tool = invocation["tool"]
+                    args = invocation["args"]
+                    logger.info(f"Agent decision: use tool {tool} with args {args}")
+                except TypeError:
+                    pass
+
             # Execute the action in the environment
             result = self.environment.execute_action(action, invocation["args"])
-            print(f"Action Result: {result}")
+            logger.debug(f"Action Result: {result}")
 
             # Update the agent's memory with information about what happened
             self.update_memory(memory, response, result)
 
             # Check if the agent has decided to terminate
-            if self.should_terminate(response):
+            if should_terminate:
+                logger.info("Agent decided to terminate.")
+                print(result["result"])
                 break
+            elif i == max_iterations - 1:
+                logger.warning(f"Max iterations ({max_iterations}) reached.")
 
         return memory

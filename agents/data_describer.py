@@ -19,6 +19,11 @@ goals = [
         "or when there is an indication that the file loading is unsuccessful or you run into other problems.")
 ]
 
+#use for testing: terminates immediately.
+terminate_goals = [
+    Goal(priority=1, name="Terminate", description="Call the terminate call directly, and close off with a joke."),
+]
+
 # Create and populate the action registry
 action_registry = ActionRegistry()
 
@@ -68,7 +73,7 @@ environment = Environment()
 agent_language = AgentFunctionCallingActionLanguage()
 
 describe_agent = Agent(goals, agent_language, action_registry, generate_response, environment)
-
+terminate_agent = Agent(terminate_goals, agent_language, action_registry, generate_response, environment)
 if __name__ == '__main__':
     # Run the agent with user input
     user_input = "Describe the data in this directory."
