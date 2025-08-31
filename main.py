@@ -21,9 +21,10 @@ goals = [
 
 # Helper functions (may be migrated to utils at some point)
 def load_df_from_path(path: str):
-    if not os.path.exists(path):
-        raise ValueError(f"File not found at path: {path}")
-    return pd.read_csv(path)
+    full_path = pathlib.Path(data_dir) / path
+    if not os.path.exists(full_path):
+        raise ValueError(f"File not found at path: {full_path}")
+    return pd.read_csv(full_path)
 
 # Function definitions. These can be called by the LLM.
 def list_files() -> list:
@@ -32,7 +33,7 @@ def list_files() -> list:
 
 def list_column_names_of_dataframe(path: str) -> List[str]:
     """List column names of a pandas DataFrame."""
-    df = load_df_from_path(pathlib.Path(data_dir) / path)
+    df = load_df_from_path(path)
     return list(df.columns)
 
 def describe_dataframe(path: str) -> str:
