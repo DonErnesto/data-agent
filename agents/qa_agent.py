@@ -6,8 +6,8 @@ from pydantic import BaseModel, Field
 import pandas as pd
 from src.agent.environment import Environment
 from src.agent.actions import ActionRegistry, Action
-from src.agent.actions import list_files, list_column_names_of_dataframe, describe_column, describe_dataframe, show_datatype_of_column
-from src.agent.actions import ListFilesParams, ListColumnNamesOfDataFrameParams, DescribeColumnParams, DescribeDataframeParams, ShowDatatypeOfColumnParams
+from src.agent.actions import list_files, describe_dataframe, show_datatype_of_column, describe_column, compare_similarity_column_joined_on_key
+from src.agent.actions import ListFilesParams, DescribeDataframeParams, ShowDatatypeOfColumnParams, DescribeColumnParams, CompareSimilarityColumnJoinedOnKeyParams
 from src.agent.agent import Agent, AgentLanguage, AgentFunctionCallingActionLanguage, generate_response
 from src.agent.goals import Goal
 load_dotenv() # This loads variables from .env into os.environ
@@ -20,6 +20,10 @@ goals = [
     - Summarize the main differences between both files
 
     """),
+    Goal(priority=1, name="Do a column-wise deep-dive", description="""
+    - For columns where changes are seen, compare the similarity and difference between columns in the previous and new (current) file
+    - Highlight changes when they exceed a few %, by explicitly flagging these as WARNINGS!
+    """),    
     Goal(priority=1, name="Terminate", description="Call the terminate call when you have found the two SBTI files, "\
         "or when there is an indication that the file loading is unsuccessful or you run into other problems.")
 ]
@@ -35,13 +39,6 @@ action_registry.register(Action(
     terminal=False
 ))
 
-action_registry.register(Action(
-    name="list_column_names_of_dataframe",
-    function=list_column_names_of_dataframe,
-    description="List the columns of the dataframe",
-    pydantic_base_model=ListColumnNamesOfDataFrameParams,
-    terminal=False
-))
 
 action_registry.register(Action(
     name="describe_dataframe",
@@ -67,13 +64,23 @@ action_registry.register(Action(
     terminal=False
 ))
 
+action_registry.register(Action(
+    name="compare_similarity_column_joined_on_key",
+    function=compare_similarity_column_joined_on_key,
+    description="compare the similarity of a previous and current version of a column joined on key. ",
+    pydantic_base_model=CompareSimilarityColumnJoinedOnKeyParams,
+    terminal=False
+))
+
 
 # Define the environment
 environment = Environment()
 agent_language = AgentFunctionCallingActionLanguage()
 
 qa_agent = Agent(goals, agent_language, action_registry, generate_response, environment)
-user_input = "Describe the parquet data in the directory, and report the latest and previous files."
+user_input = "Describe the parquet data in the directory, "\
+    "report a summary of the difference between the previous and newest (current) files. "\
+    "and investigate the similarity and changes of columns (after joining on common key)"
 
 if __name__ == '__main__':
     # Run the agent with user input

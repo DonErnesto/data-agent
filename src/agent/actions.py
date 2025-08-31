@@ -97,6 +97,29 @@ def translate_pd_to_human(message) -> None:
     """
     print(f"The pandas results can be described as follows: {message}")
 
+# Functions that compare compare columns after joining on a primary key
+def outer_join_on_key(df_1_path: str, df_2_path: str, join_key='sbti_id'):
+    df_1 = load_df_from_path(df_1_path)
+    df_2 = load_df_from_path(df_2_path)
+    return df_1.merge(df_2, how='outer', on='sbti_id', suffixes=('_prev', '_curr'), indicator=True)
+
+def compare_similarity_column_joined_on_key(path_df_prev: str, path_df_curr: str, column_name: str) -> str:
+    joined_df = outer_join_on_key(path_df_prev, path_df_curr, join_key='sbti_id')
+    normalized_counts = joined_df["_merge"].value_counts(normalize=True)
+
+    # Format as percentages
+    percentage_merge_stats = (normalized_counts * 100).map('{:.3f}%'.format).to_string()
+    both_joined_idx = joined_df["_merge"] == "both"
+    number_joined = both_joined_idx.sum()
+
+    both_joined_frac_diff = (joined_df.loc[both_joined_idx, f"{column_name}_prev"] !=
+                    joined_df.loc[both_joined_idx, f"{column_name}_curr"]).sum()/number_joined
+    both_joined_percent_diff = f"{both_joined_frac_diff:.3%}"
+
+    merge_str = f"The percentages of merges (both, only old, only new) are: \n {percentage_merge_stats}\n"
+    identical_str = f"The percentage of values that could be merged that are unequal is {both_joined_percent_diff}"
+    return (merge_str + identical_str)
+
 
 # Parameter definitions in Pydantic.
 class ListFilesParams(BaseModel):
@@ -120,4 +143,12 @@ class DescribeColumnParams(BaseModel):
     """Describe the contents of a column in a pandas DataFrame."""
     path: str = Field(..., description="The path to the dataframe to read from")
     column_name: str = Field(..., description="The name of the column to describe.")
+
+class CompareSimilarityColumnJoinedOnKeyParams(BaseModel):
+    """ Get join- and similarity metrics for a column after joining on a primary key"""
+    path_df_prev: str = Field(..., description="The path to the previous data.")
+    path_df_curr: str = Field(..., description="The path to the current data")
+    column_name: str = Field(..., description="The name of the column to compare.")
+
+
 
