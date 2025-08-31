@@ -1,21 +1,21 @@
 import os
 from typing import List
+from dotenv import load_dotenv
+import pathlib
 from pydantic import BaseModel, Field
 import pandas as pd
 from src.agent.environment import Environment
 from src.agent.actions import ActionRegistry, Action
 from src.agent.agent import Agent, AgentLanguage, AgentFunctionCallingActionLanguage, generate_response
 from src.agent.goals import Goal
-from dotenv import load_dotenv
 load_dotenv() # This loads variables from .env into os.environ
 
-# Define a simple file management goal
-
+data_dir = "data/"
 
 goals = [
     Goal(priority=1, name="Gather Information", description="Giving a summary of all data present in the data directory, "\
     "by listing all files in the directory, and describing the dataframes. "),
-    Goal(priority=0, name="Terminate", description="Call the terminate call when you have descriptions of all dataframes, "\
+    Goal(priority=1, name="Terminate", description="Call the terminate call when you have descriptions of all dataframes, "\
         "or when there is an indication that the file loading is unsuccessful or you run into other problems.")
 ]
 
@@ -28,11 +28,11 @@ def load_df_from_path(path: str):
 # Function definitions. These can be called by the LLM.
 def list_files() -> list:
     """List all files in the data directory."""
-    return os.listdir('data/')
+    return os.listdir(data_dir)
 
 def list_column_names_of_dataframe(path: str) -> List[str]:
     """List column names of a pandas DataFrame."""
-    df = load_df_from_path(path)
+    df = load_df_from_path(pathlib.Path(data_dir) / path)
     return list(df.columns)
 
 def describe_dataframe(path: str) -> str:
