@@ -10,20 +10,13 @@ from dotenv import load_dotenv
 load_dotenv() # This loads variables from .env into os.environ
 
 # Define a simple file management goal
-file_management_goal = Goal(
-    priority=1,
-    name="file_management",
-    description="""Giving a summary of all data present in the data directory:
-    1. Listing all pandas dataframes in the directory
-    2. Describing the invidual dataframes
-"""
-)
+
 
 goals = [
-    Goal(priority=1, name="Gather Information", description="Giving a summary of all data present in the data directory,"\
+    Goal(priority=1, name="Gather Information", description="Giving a summary of all data present in the data directory, "\
     "by listing all files in the directory, and describing the dataframes. "),
-    Goal(priority=1, name="Terminate", description="Call the terminate call when you have read all the files "
-                                                    "and provide the content of the README in the terminate message")
+    Goal(priority=0, name="Terminate", description="Call the terminate call when you have descriptions of all dataframes, "\
+        "or when there is an indication that the file loading is unsuccessful or you run into other problems.")
 ]
 
 # Helper functions (may be migrated to utils at some point)
@@ -133,13 +126,6 @@ action_registry.register(Action(
     terminal=False
 ))
 
-action_registry.register(Action(
-    name="terminate",
-    function=describe_column,
-    description="Describe a particular column in the dataframe",
-    pydantic_base_model=DescribeColumnParams,
-    terminal=False
-))
 
 # Define the environment
 environment = Environment()
