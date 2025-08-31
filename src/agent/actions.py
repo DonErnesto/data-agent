@@ -59,7 +59,12 @@ def load_df_from_path(path: str):
     full_path = pathlib.Path(data_dir) / path
     if not os.path.exists(full_path):
         raise ValueError(f"File not found at path: {full_path}")
-    return pd.read_csv(full_path)
+    if path.endswith('.csv'):
+        return pd.read_csv(full_path)
+    if path.endswith('.parquet'):
+        return pd.read_parquet(full_path)
+    else:
+        raise NotImplementedError("Extension not implemented for reading.")
 
 # Function definitions. These can be called by the LLM.
 def list_files() -> list:
@@ -74,7 +79,7 @@ def list_column_names_of_dataframe(path: str) -> List[str]:
 def describe_dataframe(path: str) -> str:
     """Describe the contents of a pandas DataFrame."""
     df = load_df_from_path(path)
-    return df.describe().to_string()
+    return df.describe(include='all').T[["count", "unique", "freq", "mean", "std"]].to_string()
 
 def show_datatype_of_column(path: str, column_name: str) -> str:
     """Show the datatype of a column in a pandas DataFrame."""
