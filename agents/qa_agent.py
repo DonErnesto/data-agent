@@ -15,17 +15,27 @@ load_dotenv() # This loads variables from .env into os.environ
 
 goals = [
     Goal(priority=1, name="Gather Information", description="""
-    - Find the latest SBTI target file in data, and the previous one, by listing all parquet files.
-    - Get the principle characteristics of both files, such as the file size, the number of rows and columns, and main statistics of the columns
-    - Summarize the main differences between both files
-
+    - Find the latest and the previous SBTI target file in data, by listing all parquet files.
+    - Get the main characteristics of both files, like data type, and basic statistics.
+    - Especially pay attention to changes observed.
+     """),
+    Goal(priority=1, name="Do a deep-dive in the columns", description="""
+    - Based on the information gathered, do a deep dive on the changes in data on column-level, for a handful of selected columns,
+    focusing on columns that refer explicitly to targets.
+    - Especially determine the similarity of the columns, and judge whether the changes are significant.
+    - Use extra information available to make an expert judgement and report these details in the final summary.
+    - Consider that columns with a high number of value counts or free text may be subjected to large changes.
+    - Provide some background information such as value counts, and number of unique values.
+    - Report columns with large changes by explicitly flagging a WARNING, and give background explanations when doing so, 
+    for instance by comparing the value counts before and after, and providing some sample values.
+    - Note that the SBTI data is joined on the "sbti_id" column, therefore do not compare this column. 
     """),
-    Goal(priority=1, name="Do a column-wise deep-dive", description="""
-    - For columns where changes are seen, compare the similarity and difference between columns in the previous and new (current) file
-    - Highlight changes when they exceed a few %, by explicitly flagging these as WARNINGS!
-    """),    
-    Goal(priority=1, name="Terminate", description="Call the terminate call when you have found the two SBTI files, "\
-        "or when there is an indication that the file loading is unsuccessful or you run into other problems.")
+    Goal(priority=1, 
+    name="Terminate", description="Call the terminate function only when you have completed the information gathering "\
+        "and the column-wise deep dive. "\
+        "Most importantly: give a highly structured and extensive summary of the observations,  "\
+        "First in a section listing the "
+    )
 ]
 
 # Create and populate the action registry
@@ -78,9 +88,36 @@ environment = Environment()
 agent_language = AgentFunctionCallingActionLanguage()
 
 qa_agent = Agent(goals, agent_language, action_registry, generate_response, environment)
-user_input = "Describe the parquet data in the directory, "\
-    "report a summary of the difference between the previous and newest (current) files. "\
-    "and investigate the similarity and changes of columns (after joining on common key)"
+user_input = """
+You are an AI agent that can perform tasks by using available tools to answer questions about two pandas DataFrames that are loaded in the environment.
+
+Your workflow is:
+1. Read the user request carefully.
+2. Execute the right pandas tool(s) to obtain the necessary information. You may need multiple tool calls.
+3. After gathering the required information, analyze the results directly (do not terminate yet).
+4. Formulate a clear, concise, and human-interpretable summary/answer based on the results.
+5. ONLY after you have the complete summary/answer, call the "terminate" tool ONCE with the full answer in its 'message' field.
+
+⚠️ Rules:
+- Do NOT call "terminate" until you have the full final answer ready.
+- Do NOT drop or omit the analysis results. The entire human-facing explanation must be included in the terminate message.
+- If you are unsure or need more information, make additional tool calls instead of terminating early.
+
+- Your terminate message must always follow this structure:
+
+  Summary:
+  <Plain-language explanation of the findings. Clearly answer the user’s question.>
+
+  Key Results:
+  - <Specific value(s) or statistics computed>
+  - <Any notable comparisons, anomalies, or patterns>
+  - <References to relevant columns or subsets used>
+
+  Notes:
+  <Optional section for caveats, assumptions, or next steps if more analysis is needed.>
+"""
+
+
 
 if __name__ == '__main__':
     # Run the agent with user input

@@ -6,8 +6,8 @@ from langchain_core.utils.function_calling import convert_to_openai_function
 from pydantic import BaseModel, Field
 
 class TerminateParams(BaseModel):
-    """Terminates the conversation. No further actions or interactions are possible after this. Prints the provided message for the user."""
-    message: str = Field(..., description="The message to print to the user.")
+    """Terminates the conversation and provides the final analysis to the user. """
+    message: str = Field(..., description="The final analysis to provide to the user.")
 
 
 class Action:
@@ -34,8 +34,8 @@ class ActionRegistry:
         self.actions = {
                 "terminate":Action(
                     name="terminate",
-                    function=lambda message: f"{message}\nTerminating...",
-                    description="Terminates the session and prints the message to the user.",
+                    function=lambda message: f"{message} \n Terminating...",
+                    description="Terminates the session and prints the final to the user.",
                     pydantic_base_model=TerminateParams,
                     terminal=True
                 )
@@ -89,7 +89,10 @@ def show_datatype_of_column(path: str, column_name: str) -> str:
 def describe_column(path: str, column_name: str) -> str:
     """Describe the contents of a column in a pandas DataFrame."""
     df = load_df_from_path(path)
-    return df[column_name].describe().to_string()
+    description_column =  df[column_name].describe().to_string()
+    normalized_value_counts = df[column_name].value_counts(normalize=True, dropna=False)
+    normalized_perc = ((normalized_value_counts * 100).map('{:.3f}%'.format).to_string())
+    return f"Description of column: {description_column} \n \n Normalized value counts: {normalized_perc}"
 
 def translate_pd_to_human(message) -> None:
     """ Translate the pandas results into a human-readable text.
@@ -118,7 +121,7 @@ def compare_similarity_column_joined_on_key(path_df_prev: str, path_df_curr: str
 
     merge_str = f"The percentages of merges (both, only old, only new) are: \n {percentage_merge_stats}\n"
     identical_str = f"The percentage of values that could be merged that are unequal is {both_joined_percent_diff}"
-    return (merge_str + identical_str)
+    return (f"Analyzed similarity of column {column_name}: {merge_str}. {identical_str}.")
 
 
 # Parameter definitions in Pydantic.

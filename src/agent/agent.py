@@ -1,6 +1,8 @@
 import logging
 from dataclasses import dataclass, field
 import json
+import time
+import pickle
 from typing import List, Callable, Dict, Any, Union
 from litellm import completion
 from agent.actions import Action, ActionRegistry
@@ -20,7 +22,6 @@ class Prompt:
 
 def generate_response(prompt: Prompt) -> str:
     """Call LLM to get response"""
-
     messages = prompt.messages
     tools = prompt.tools
 
@@ -30,16 +31,35 @@ def generate_response(prompt: Prompt) -> str:
         response = completion(
             model="openai/gpt-4o",
             messages=messages,
+            temperature=0.1,
             max_tokens=1024
         )
         result = response.choices[0].message.content
     else:
         response = completion(
-            model="openai/gpt-4o",
+            model="openai/gpt-4-turbo-2024-04-09",
             messages=messages,
+            temperature=0.1,
             tools=tools,
             max_tokens=1024
         )
+
+        # --- Save the raw response object to disk ---
+        # Use a timestamp for the filename
+        timestamp_str = time.strftime("%Y%m%d_%H%M%S")
+        response_filename = f"tmp/raw_llm_response_{timestamp_str}.pkl"
+        try:
+            with open(response_filename, 'wb') as f:
+                pickle.dump(response, f)
+            logger.info(f"Saved raw LLM response to {response_filename}")
+            # To load this file later in another cell:
+            # import pickle
+            # with open('raw_llm_response_YYYYMMDD_HHMMSS.pkl', 'rb') as f:
+            #     loaded_response = pickle.load(f)
+            # print(loaded_response) # You can then inspect the loaded_response object
+        except Exception as save_e:
+            logger.error(f"Error saving raw LLM response to {response_filename}: {save_e}", exc_info=True)
+        # --- End of saving ---
 
         if response.choices[0].message.tool_calls:
             tool = response.choices[0].message.tool_calls[0]
@@ -48,8 +68,12 @@ def generate_response(prompt: Prompt) -> str:
                 "args": json.loads(tool.function.arguments),
             }
             result = json.dumps(result)
+
         else:
             result = response.choices[0].message.content
+            logger.warning(f"DEBUG generate_response. NOT TOOL CALL. response: {response}")
+            logger.warning(f"DEBUG generate_response. NOT TOOL CALL. result: {result}")
+
 
 
     return result
@@ -152,8 +176,9 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
         try:
             return json.loads(response)
         except Exception as e:
+            logger.debug(f"DEBUG parse_response === response: {response}.")
             return {
-                "tool": "terminate",
+                "tool": "escalate_incorrect_response",
                 "args": {"message":response}
             }
 
@@ -190,7 +215,10 @@ class Agent:
 
     def should_terminate(self, response: str) -> bool:
         action_def, _ = self.get_action(response)
-        return action_def.terminal
+        try:
+            return action_def.terminal
+        except AttributeError:
+            return True
 
     def set_current_task(self, memory: Memory, task: str):
         memory.add_memory({"type": "user", "content": task})
@@ -208,6 +236,7 @@ class Agent:
 
     def prompt_llm_for_action(self, full_prompt: Prompt) -> str:
         response = self.generate_response(full_prompt)
+        logger.debug(f"===DEBUG response ==== : {response} === DEBUG response END===")
         return response
 
     def run(self, user_input: str, memory=None, max_iterations: int = 50) -> Memory:
@@ -226,11 +255,22 @@ class Agent:
             logger.info("Agent thinking...")
             # Generate a response from the agent
             response = self.prompt_llm_for_action(prompt)
+
             logger.debug(f"Agent Decision: {response}")
             should_terminate = self.should_terminate(response)
-
             # Determine which action the agent wants to execute
             action, invocation = self.get_action(response)
+            logger.debug(f"DEBUG main loop. action = {action}")
+            logger.debug(f"DEBUG main loop. invocation = {invocation}")
+
+            if invocation['tool'] == 'escalate_incorrect_response':
+                result = f"""The following response could not be processed: {response}.
+                        Please ensure you provide only one, correct action. """
+                self.update_memory(memory, response, result)
+                logger.warning(f"Action result")
+                continue
+
+            logger.debug(response)
 
             if not should_terminate:
                 try:
@@ -238,7 +278,7 @@ class Agent:
                     args = invocation["args"]
                     logger.info(f"Agent decision: use tool {tool} with args {args}")
                 except TypeError:
-                    pass
+                    logger.warning("Couldn't parse the response!")
 
             # Execute the action in the environment
             result = self.environment.execute_action(action, invocation["args"])
