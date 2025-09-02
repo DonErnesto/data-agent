@@ -20,12 +20,10 @@ goals = [
     - Especially pay attention to changes observed.
      """),
     Goal(priority=1, name="Do a deep-dive in the columns", description="""
-    - Based on the information gathered, do a deep dive on the changes in data on column-level, for a handful of selected columns,
-    focusing on columns that refer explicitly to targets.
+    - Based on the information gathered, do a deep dive on the changes in data on column-level
+    - Investigate AT LEAST a handful of columns, focusing on those with largest relevance to the dataset.
     - Especially determine the similarity of the columns, and judge whether the changes are significant.
     - Use extra information available to make an expert judgement and report these details in the final summary.
-    - Consider that columns with a high number of value counts or free text may be subjected to large changes.
-    - Provide some background information such as value counts, and number of unique values.
     - Report columns with large changes by explicitly flagging a WARNING, and give background explanations when doing so, 
     for instance by comparing the value counts before and after, and providing some sample values.
     - Note that the SBTI data is joined on the "sbti_id" column, therefore do not compare this column. 
@@ -48,7 +46,6 @@ action_registry.register(Action(
     pydantic_base_model=ListFilesParams,
     terminal=False
 ))
-
 
 action_registry.register(Action(
     name="describe_dataframe",

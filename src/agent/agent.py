@@ -71,8 +71,8 @@ def generate_response(prompt: Prompt) -> str:
 
         else:
             result = response.choices[0].message.content
-            logger.warning(f"DEBUG generate_response. NOT TOOL CALL. response: {response}")
-            logger.warning(f"DEBUG generate_response. NOT TOOL CALL. result: {result}")
+            logger.debug(f"DEBUG generate_response. NOT TOOL CALL. response: {response}")
+            logger.debug(f"DEBUG generate_response. NOT TOOL CALL. result: {result}")
 
 
 
