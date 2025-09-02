@@ -2,8 +2,8 @@ import traceback
 import time
 import logging
 from typing import Any
-from agent.actions import Action
-from utils.logger import CustomLogger
+from .actions import Action
+from ..utils.logger import CustomLogger
 
 logger = CustomLogger(console_level="INFO", file_level="DEBUG")
 
