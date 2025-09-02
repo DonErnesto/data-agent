@@ -1,7 +1,7 @@
 import logging
-from src.agents.data_describer import describe_agent, terminate_agent
-from src.agents.qa_agent import qa_agent, user_input
-from src.utils.logger import CustomLogger
+from data_agent.agents.data_describer import describe_agent, terminate_agent
+from data_agent.agents.qa_agent import qa_agent, user_input
+from data_agent.utils.logger import CustomLogger
 
 logger = CustomLogger(console_level="INFO", file_level="DEBUG")
 
