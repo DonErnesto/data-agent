@@ -4,12 +4,12 @@ from dotenv import load_dotenv
 import pathlib
 from pydantic import BaseModel, Field
 import pandas as pd
-from src.agent.environment import Environment
-from src.agent.actions import ActionRegistry, Action
-from src.agent.actions import list_files, describe_dataframe, show_datatype_of_column, describe_column, compare_similarity_column_joined_on_key
-from src.agent.actions import ListFilesParams, DescribeDataframeParams, ShowDatatypeOfColumnParams, DescribeColumnParams, CompareSimilarityColumnJoinedOnKeyParams
-from src.agent.agent import Agent, AgentLanguage, AgentFunctionCallingActionLanguage, generate_response
-from src.agent.goals import Goal
+from ..agent.environment import Environment
+from ..agent.actions import ActionRegistry, Action
+from ..agent.actions import list_files, describe_dataframe, show_datatype_of_column, describe_column, compare_similarity_column_joined_on_key
+from ..agent.actions import ListFilesParams, DescribeDataframeParams, ShowDatatypeOfColumnParams, DescribeColumnParams, CompareSimilarityColumnJoinedOnKeyParams
+from ..agent.agent import Agent, AgentLanguage, AgentFunctionCallingActionLanguage, generate_response
+from ..agent.goals import Goal
 load_dotenv() # This loads variables from .env into os.environ
 
 

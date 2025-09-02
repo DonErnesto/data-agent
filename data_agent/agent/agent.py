@@ -5,11 +5,11 @@ import time
 import pickle
 from typing import List, Callable, Dict, Any, Union
 from litellm import completion
-from agent.actions import Action, ActionRegistry
-from agent.environment import Environment
-from agent.memory import Memory
-from agent.goals import Goal
-from utils.logger import CustomLogger
+from .actions import Action, ActionRegistry
+from .environment import Environment
+from .memory import Memory
+from .goals import Goal
+from ..utils.logger import CustomLogger
 
 logger = CustomLogger(console_level="INFO", file_level="DEBUG")
 
