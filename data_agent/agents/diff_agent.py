@@ -22,7 +22,8 @@ goals = [
     Goal(priority=1, name="Do a deep-dive in the columns", description="""
     - Based on the information gathered, do a deep dive on the changes in data on column-level
     - Investigate AT LEAST a handful of columns, focusing on those with largest relevance to the dataset.
-    - Especially determine the similarity of the columns, and judge whether the changes are significant.
+    - Especially determine the difference of selected columns by joining the latest with the previous data
+    - Judge whether the changes significant; as a rule of thumb, changes exceeding a few percent are significant.
     - Use extra information available to make an expert judgement and report these details in the final summary.
     - Report columns with large changes by explicitly flagging a WARNING, and give background explanations when doing so, 
     for instance by comparing the value counts before and after, and providing some sample values.
@@ -84,7 +85,7 @@ action_registry.register(Action(
 environment = Environment()
 agent_language = AgentFunctionCallingActionLanguage()
 
-qa_agent = Agent(goals, agent_language, action_registry, generate_response, environment)
+diff_agent = Agent(goals, agent_language, action_registry, generate_response, environment)
 user_input = """
 You are an AI agent that can perform tasks by using available tools to answer questions about two pandas DataFrames that are loaded in the environment.
 
