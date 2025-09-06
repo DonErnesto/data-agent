@@ -5,3 +5,4 @@ numpy
 langchain
 dotenv
 scikit-learn
+pytest

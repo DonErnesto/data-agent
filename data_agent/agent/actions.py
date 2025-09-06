@@ -53,10 +53,103 @@ class ActionRegistry:
 
 
 ## Actions
-data_dir = "data/"
+DATA_DIR = "data/"
+
+# NEW: flexible pandas tools
+## Tools that give the assistant the power to call a wide range of pandas functions, and 
+## save the result in a dictionary. 
+DATAFRAMES: Dict[str, pd.DataFrame] = {}
+ALLOWED_METHODS = {"head", "describe", "mean", "sum", "info", "columns", "min", "max"}
+def _json_safe(obj):
+    """Convert Pandas/Numpy objects into JSON-safe Python objects."""
+    if isinstance(obj, pd.DataFrame):
+        return obj.to_dict(orient="records")   # list of dicts, row by row
+    if isinstance(obj, pd.Series):
+        return obj.to_dict()                   # dict: index → value
+    if hasattr(obj, "tolist"):                 # e.g., numpy arrays
+        return obj.tolist()
+    if obj is None:
+        return None
+    return obj  # leave plain Python types alone
+
+
+def load_dataframe(path: str, alias: str):
+    """Load a dataframe from a path and register it with an alias."""
+    if not os.path.isabs(path):
+        full_path = os.path.join(DATA_DIR, path)
+    else:  #make it accept a full path too for pytest.fixture
+        full_path = path
+    if not os.path.exists(full_path):
+        raise ValueError(f"File not found at path: {full_path}")
+    if path.endswith('.csv'):
+        df = pd.read_csv(full_path)
+    elif path.endswith('.parquet'):
+        df = pd.read_parquet(full_path)
+    else:
+        print(f"path: {path}. path endswith csv: {path.endswith('.csv')}")
+        raise NotImplementedError("Only .parquet and .csv implemented for reading.")  
+    DATAFRAMES[alias] = df
+    return f"Dataframe '{alias}' loaded with shape {df.shape}"
+
+def call_dataframe_method(alias: str, method: str, *args, **kwargs):
+    """
+    Call a whitelisted Pandas method on a DataFrame stored in DATAFRAMES.
+    Return JSON-safe result.
+    """
+    if alias not in DATAFRAMES:
+        raise ValueError(f"No dataframe registered with alias '{alias}'")
+
+    df = DATAFRAMES[alias]
+
+    # Whitelist
+    allowed = {"head", "describe", "info", "shape", "columns", "mean", "sum"}
+    if method not in allowed:
+        raise ValueError(f"Method {method} not allowed")
+
+    func = getattr(df, method)
+
+    # Special case: df.info() prints to stdout → capture as string
+    if method == "info":
+        import io
+        buf = io.StringIO()
+        df.info(buf=buf)
+        return buf.getvalue()
+
+    # Otherwise, call method
+    result = func(*args, **kwargs)
+
+    # Convert to JSON-safe
+    return _json_safe(result)
+
+
+def call_column_method(alias: str, column: str, method: str):
+    """ Call selected functions on a dataframe column."""
+    if alias not in DATAFRAMES:
+        raise ValueError(f"No dataframe registered with alias '{alias}'")
+    df = DATAFRAMES[alias]
+    if column not in df.columns:
+        raise ValueError(f"Column {column} not found")
+
+    if method not in {"mean", "sum", "median", "std", "min", "max"}:
+        raise ValueError(f"Method {method} not allowed")
+
+    return _json_safe(getattr(df[column], method)())
+
+
+def merge_dataframes(left: str, right: str, on: str, how: str = "inner", alias: str = None):
+    """
+    Merge two dataframes by their alias and store result under a new alias.
+    """
+    df_left = DATAFRAMES[left]
+    df_right = DATAFRAMES[right]
+    merged = pd.merge(df_left, df_right, on=on, how=how)
+    alias = alias or f"{left}_{right}_merged"
+    DATAFRAMES[alias] = merged
+    return f"Merged dataframe stored as '{alias}' with shape {merged.shape}"
+
 
 def load_df_from_path(path: str):
-    full_path = pathlib.Path(data_dir) / path
+    full_path = pathlib.Path(DATA_DIR) / path
     if not os.path.exists(full_path):
         raise ValueError(f"File not found at path: {full_path}")
     if path.endswith('.csv'):
@@ -66,10 +159,39 @@ def load_df_from_path(path: str):
     else:
         raise NotImplementedError("Extension not implemented for reading.")
 
+class LoadDataFrameParams(BaseModel):
+    """Load a dataframe from a file path and assign an alias."""
+    alias: str = Field(..., description="The alias to assign the dataframe to.")
+    path: str = Field(..., describe_column="The path to load the dataframe from.")
+
+class CallDataFrameMethodParams(BaseModel):
+    """"Call a safe pandas method (e.g., head, describe, mean) on a dataframe by alias. """
+    method: str = Field(..., description="The name of the pandas method to call")
+    alias: str = Field(..., description="Alias of the dataframe to operate on")
+    args: List[Any] = Field(default_factory=list, description="Positional arguments for the method")
+    kwargs: Dict[str, Any] = Field(default_factory=dict, description="Keyword arguments for the method")
+
+class MergeDataFramesParams(BaseModel):
+    """Merge two dataframes by ther alias and store result under a new alias. """
+    left: str = Field(..., description="The alias of the left dataframe.")
+    right: str = Field(..., description="The alias of the right dataframe.")
+    on: str = Field(..., description="On which column merge the two dataframes")
+    how: str = Field(..., description="How to merge the two dataframes (per default: 'inner')")
+    alias: str = Field(..., description="The alias to store the result under.")
+
+class CallColumnMethodParams(BaseModel):
+    """"Call a safe pandas method (e.g., head, describe, mean) on a dataframe by alias. """
+    alias: str = Field(..., description="Alias of the dataframe to operate on")
+    column: str = Field(..., description="The column on which to apply the method")
+    method: str = Field(..., description="The name of the pandas method to call")
+
+
 # Function definitions. These can be called by the LLM.
-def list_files() -> list:
-    """List all files in the data directory."""
-    return os.listdir(data_dir)
+def list_files(dir: str = None) -> list:
+    """List all files in a directory. If no dir is given, the DATA_PATH is used."""
+    if not dir:
+        dir = DATA_DIR
+    return os.listdir(dir)
 
 def list_column_names_of_dataframe(path: str) -> List[str]:
     """List column names of a pandas DataFrame."""
@@ -152,6 +274,5 @@ class CompareSimilarityColumnJoinedOnKeyParams(BaseModel):
     path_df_prev: str = Field(..., description="The path to the previous data.")
     path_df_curr: str = Field(..., description="The path to the current data")
     column_name: str = Field(..., description="The name of the column to compare.")
-
-
+ 
 
