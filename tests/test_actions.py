@@ -2,8 +2,10 @@ import os
 import pandas as pd
 import pytest
 import json
+import datetime
 
-from data_agent.agent.actions import load_dataframe, call_dataframe_method, list_files, call_column_method, DATAFRAMES
+from data_agent.agent.actions import load_dataframe, call_dataframe_method, list_files, call_column_method, DATAFRAMES, _json_safe
+
 CSV_FILENAME =  "sample.csv"
 # --- Fixtures ---
 @pytest.fixture
@@ -99,3 +101,52 @@ def test_json_serializable_column_results(sample_csv, method, args):
         json.dumps(result)
     except TypeError as e:
         pytest.fail(f"Result of {method} not JSON serializable: {e}")
+
+def test_json_safe_dataframe_with_timestamps():
+    df = pd.DataFrame({
+        "id": [1, 2],
+        "when": pd.to_datetime(["2020-01-01 12:00:00", "2020-01-02 15:30:00"]),
+        "date_only": [datetime.date(2020, 1, 1), datetime.date(2020, 1, 2)]
+    })
+
+    # Use describe to stress-test stats including datetime columns
+    desc = df.describe(include="all")
+    safe = _json_safe(desc)
+    json_str = json.dumps(safe)  # should not raise
+    assert "2020-01-01" in json_str or "2020-01-02" in json_str
+    assert isinstance(safe, (dict, list))  # structure is JSON safe
+
+def test_json_safe_correct():
+    df = pd.DataFrame({
+        "id": [1, 2, 3],
+        "value": [10, 20, 30],
+        "category": ["A", "B", "A"]
+    })
+    safe = _json_safe(df)
+    df_reconstructed = pd.DataFrame.from_dict(safe)
+    pd.testing.assert_frame_equal(df, df_reconstructed)
+    print(safe)
+
+def test_json_safe_describe_correct():
+    data = pd.DataFrame({
+        "id": [1, 2, 3],
+        "value": [10, 20, 30],
+        "category": ["A", "B", "A"]
+    })
+    df = data.describe()
+    print(df)
+    safe = _json_safe(df)
+    
+    df_reconstructed = pd.DataFrame.from_dict(data=safe["data"], orient="columns")
+    df_reconstructed.columns = safe["columns"]
+    df_reconstructed.index = safe["index"]
+    print(f"df: {df}")
+    print(f"df reconstructed: {df_reconstructed}")
+    print(f"safe: {safe}")    
+    pd.testing.assert_frame_equal(df, df_reconstructed)
+
+if __name__ == '__main__':
+    
+    test_json_safe_dataframe_with_timestamps()
+    test_json_safe_correct()
+    test_json_safe_describe_correct()

@@ -1,6 +1,8 @@
 from typing import List, Callable, Dict, Any, Union
 import os
 import pandas as pd
+import numpy as np
+import datetime
 import pathlib
 from langchain_core.utils.function_calling import convert_to_openai_function
 from pydantic import BaseModel, Field
@@ -60,17 +62,37 @@ DATA_DIR = "data/"
 ## save the result in a dictionary. 
 DATAFRAMES: Dict[str, pd.DataFrame] = {}
 ALLOWED_METHODS = {"head", "describe", "mean", "sum", "info", "columns", "min", "max"}
+
+
 def _json_safe(obj):
-    """Convert Pandas/Numpy objects into JSON-safe Python objects."""
+    """Recursively convert Pandas/Numpy objects into JSON-safe Python objects."""
     if isinstance(obj, pd.DataFrame):
-        return obj.to_dict(orient="records")   # list of dicts, row by row
+        # Preserve index if it's not the default RangeIndex (keeps 'count','mean',... for describe)
+        if not obj.index.equals(pd.RangeIndex(start=0, stop=len(obj))):
+            columns = [_json_safe(c) for c in obj.columns]
+            index = [_json_safe(i) for i in obj.index]  # handles MultiIndex/datetimes
+            # Convert each cell via _json_safe to handle Timestamps etc.
+            data = [[_json_safe(v) for v in row] for row in obj.itertuples(index=False, name=None)]
+            return {"columns": columns, "index": index, "data": data}
+        else:
+            # For "normal" tables, just return as list of records
+            return [_json_safe(row) for row in obj.to_dict(orient="records")]
     if isinstance(obj, pd.Series):
-        return obj.to_dict()                   # dict: index → value
-    if hasattr(obj, "tolist"):                 # e.g., numpy arrays
+        return _json_safe(obj.to_dict())
+    if isinstance(obj, dict):
+        return {k: _json_safe(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple, set)):
+        return [_json_safe(v) for v in obj]
+    if isinstance(obj, (pd.Timestamp, datetime.datetime, datetime.date)):
+        return obj.isoformat()
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if hasattr(obj, "tolist"):  # numpy arrays, etc.
         return obj.tolist()
-    if obj is None:
-        return None
-    return obj  # leave plain Python types alone
+    return obj
+
 
 
 def load_dataframe(path: str, alias: str):
@@ -81,6 +103,7 @@ def load_dataframe(path: str, alias: str):
         full_path = path
     if not os.path.exists(full_path):
         raise ValueError(f"File not found at path: {full_path}")
+
     if path.endswith('.csv'):
         df = pd.read_csv(full_path)
     elif path.endswith('.parquet'):
@@ -154,7 +177,7 @@ def load_df_from_path(path: str):
         raise ValueError(f"File not found at path: {full_path}")
     if path.endswith('.csv'):
         return pd.read_csv(full_path)
-    if path.endswith('.parquet'):
+    elif path.endswith('.parquet'):
         return pd.read_parquet(full_path)
     else:
         raise NotImplementedError("Extension not implemented for reading.")
