@@ -7,3 +7,9 @@ dotenv
 scikit-learn
 pytest
 flake8
+pre-commit
+isort
+black
+flake8-black
+flake8-isort
+tomli

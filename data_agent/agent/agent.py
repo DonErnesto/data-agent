@@ -1,17 +1,19 @@
-import logging
-from dataclasses import dataclass, field
 import json
-import time
 import pickle
-from typing import List, Callable, Dict, Any, Union
+import time
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List
+
 from litellm import completion
+
+from ..utils.logger import CustomLogger
 from .actions import Action, ActionRegistry
 from .environment import Environment
-from .memory import Memory
 from .goals import Goal
-from ..utils.logger import CustomLogger
+from .memory import Memory
 
 logger = CustomLogger(console_level="INFO", file_level="DEBUG")
+
 
 @dataclass
 class Prompt:
@@ -29,10 +31,7 @@ def generate_response(prompt: Prompt) -> str:
 
     if not tools:
         response = completion(
-            model="openai/gpt-4o",
-            messages=messages,
-            temperature=0.1,
-            max_tokens=1024
+            model="openai/gpt-4o", messages=messages, temperature=0.1, max_tokens=1024
         )
         result = response.choices[0].message.content
     else:
@@ -41,7 +40,7 @@ def generate_response(prompt: Prompt) -> str:
             messages=messages,
             temperature=0.1,
             tools=tools,
-            max_tokens=1024
+            max_tokens=1024,
         )
 
         # --- Save the raw response object to disk ---
@@ -49,7 +48,7 @@ def generate_response(prompt: Prompt) -> str:
         timestamp_str = time.strftime("%Y%m%d_%H%M%S")
         response_filename = f"tmp/raw_llm_response_{timestamp_str}.pkl"
         try:
-            with open(response_filename, 'wb') as f:
+            with open(response_filename, "wb") as f:
                 pickle.dump(response, f)
             logger.info(f"Saved raw LLM response to {response_filename}")
             # To load this file later in another cell:
@@ -58,7 +57,10 @@ def generate_response(prompt: Prompt) -> str:
             #     loaded_response = pickle.load(f)
             # print(loaded_response) # You can then inspect the loaded_response object
         except Exception as save_e:
-            logger.error(f"Error saving raw LLM response to {response_filename}: {save_e}", exc_info=True)
+            logger.error(
+                f"Error saving raw LLM response to {response_filename}: {save_e}",
+                exc_info=True,
+            )
         # --- End of saving ---
 
         if response.choices[0].message.tool_calls:
@@ -71,28 +73,29 @@ def generate_response(prompt: Prompt) -> str:
 
         else:
             result = response.choices[0].message.content
-            logger.debug(f"DEBUG generate_response. NOT TOOL CALL. response: {response}")
+            logger.debug(
+                f"DEBUG generate_response. NOT TOOL CALL. response: {response}"
+            )
             logger.debug(f"DEBUG generate_response. NOT TOOL CALL. result: {result}")
 
-
-
     return result
+
 
 class AgentLanguage:
     def __init__(self):
         pass
 
-    def construct_prompt(self,
-                         actions: List[Action],
-                         environment: Environment,
-                         goals: List[Goal],
-                         memory: Memory) -> Prompt:
+    def construct_prompt(
+        self,
+        actions: List[Action],
+        environment: Environment,
+        goals: List[Goal],
+        memory: Memory,
+    ) -> Prompt:
         raise NotImplementedError("Subclasses must implement this method")
-
 
     def parse_response(self, response: str) -> dict:
         raise NotImplementedError("Subclasses must implement this method")
-
 
 
 class AgentFunctionCallingActionLanguage(AgentLanguage):
@@ -104,10 +107,10 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
         # Map all goals to a single string that concatenates their description
         # and combine into a single message of type system
         sep = "\n-------------------\n"
-        goal_instructions = "\n\n".join([f"{goal.name}:{sep}{goal.description}{sep}" for goal in goals])
-        return [
-            {"role": "system", "content": goal_instructions}
-        ]
+        goal_instructions = "\n\n".join(
+            [f"{goal.name}:{sep}{goal.description}{sep}" for goal in goals]
+        )
+        return [{"role": "system", "content": goal_instructions}]
 
     def format_memory(self, memory: Memory) -> List:
         """Generate response from language model"""
@@ -131,7 +134,7 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
 
         return mapped_items
 
-    def format_actions(self, actions: List[Action]) -> [List,List]:
+    def format_actions(self, actions: List[Action]) -> [List, List]:
         """Generate response from language model"""
 
         tools = [
@@ -143,16 +146,19 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
                     "description": action.description[:1024],
                     "parameters": action.parameters,
                 },
-            } for action in actions
+            }
+            for action in actions
         ]
 
         return tools
 
-    def construct_prompt(self,
-                         actions: List[Action],
-                         environment: Environment,
-                         goals: List[Goal],
-                         memory: Memory) -> Prompt:
+    def construct_prompt(
+        self,
+        actions: List[Action],
+        environment: Environment,
+        goals: List[Goal],
+        memory: Memory,
+    ) -> Prompt:
 
         prompt = []
         prompt += self.format_goals(goals)
@@ -162,12 +168,14 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
 
         return Prompt(messages=prompt, tools=tools)
 
-    def adapt_prompt_after_parsing_error(self,
-                                         prompt: Prompt,
-                                         response: str,
-                                         traceback: str,
-                                         error: Any,
-                                         retries_left: int) -> Prompt:
+    def adapt_prompt_after_parsing_error(
+        self,
+        prompt: Prompt,
+        response: str,
+        traceback: str,
+        error: Any,
+        retries_left: int,
+    ) -> Prompt:
 
         return prompt
 
@@ -175,21 +183,23 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
         """Parse LLM response into structured format by extracting the ```json block"""
         try:
             return json.loads(response)
-        except Exception as e:
+        except Exception:
             logger.debug(f"DEBUG parse_response === response: {response}.")
             return {
                 "tool": "escalate_incorrect_response",
-                "args": {"message":response}
+                "args": {"message": response},
             }
 
 
 class Agent:
-    def __init__(self,
-                 goals: List[Goal],
-                 agent_language: AgentLanguage,
-                 action_registry: ActionRegistry,
-                 generate_response: Callable[[Prompt], str],
-                 environment: Environment):
+    def __init__(
+        self,
+        goals: List[Goal],
+        agent_language: AgentLanguage,
+        action_registry: ActionRegistry,
+        generate_response: Callable[[Prompt], str],
+        environment: Environment,
+    ):
         """
         Initialize an agent with its core GAME components
         """
@@ -199,13 +209,15 @@ class Agent:
         self.actions = action_registry
         self.environment = environment
 
-    def construct_prompt(self, goals: List[Goal], memory: Memory, actions: ActionRegistry) -> Prompt:
+    def construct_prompt(
+        self, goals: List[Goal], memory: Memory, actions: ActionRegistry
+    ) -> Prompt:
         """Build prompt with memory context"""
         return self.agent_language.construct_prompt(
             actions=actions.get_actions(),
             environment=self.environment,
             goals=goals,
-            memory=memory
+            memory=memory,
         )
 
     def get_action(self, response):
@@ -229,7 +241,7 @@ class Agent:
         """
         new_memories = [
             {"type": "assistant", "content": response},
-            {"type": "user", "content": json.dumps(result)}
+            {"type": "user", "content": json.dumps(result)},
         ]
         for m in new_memories:
             memory.add_memory(m)
@@ -263,11 +275,11 @@ class Agent:
             logger.debug(f"DEBUG main loop. action = {action}")
             logger.debug(f"DEBUG main loop. invocation = {invocation}")
 
-            if invocation['tool'] == 'escalate_incorrect_response':
+            if invocation["tool"] == "escalate_incorrect_response":
                 result = f"""The following response could not be processed: {response}.
                         Please ensure you provide only one, correct action. """
                 self.update_memory(memory, response, result)
-                logger.warning(f"Action result")
+                logger.warning(f"Action result: {result}")
                 continue
 
             logger.debug(response)

@@ -1,4 +1,5 @@
-from typing import List, Dict
+from typing import Dict, List
+
 
 class Memory:
     def __init__(self):

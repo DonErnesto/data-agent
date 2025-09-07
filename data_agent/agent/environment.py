@@ -1,11 +1,13 @@
-import traceback
-import time
 import logging
+import time
+import traceback
 from typing import Any
-from .actions import Action
+
 from ..utils.logger import CustomLogger
+from .actions import Action
 
 logger = CustomLogger(console_level="INFO", file_level="DEBUG")
+
 
 class Environment:
     def execute_action(self, action: Action, args: dict) -> dict:
@@ -19,7 +21,7 @@ class Environment:
             return {
                 "tool_executed": False,
                 "error": str(e),
-                "traceback": traceback.format_exc()
+                "traceback": traceback.format_exc(),
             }
 
     def format_result(self, result: Any) -> dict:
@@ -27,5 +29,5 @@ class Environment:
         return {
             "tool_executed": True,
             "result": result,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z")
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         }
