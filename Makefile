@@ -16,3 +16,12 @@ typecheck:
 	mypy data_agent
 
 all: clean lint typecheck test
+
+# Install dependencies + package in editable mode
+install:
+	pip install -r requirements.txt
+	pip install -e .
+
+# Run the main entry point
+run:
+	python main.py
