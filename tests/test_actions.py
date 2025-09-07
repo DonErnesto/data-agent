@@ -136,7 +136,7 @@ def test_json_safe_describe_correct():
     df = data.describe()
     print(df)
     safe = _json_safe(df)
-    
+
     df_reconstructed = pd.DataFrame.from_dict(data=safe["data"], orient="columns")
     df_reconstructed.columns = safe["columns"]
     df_reconstructed.index = safe["index"]
@@ -145,8 +145,30 @@ def test_json_safe_describe_correct():
     print(f"safe: {safe}")    
     pd.testing.assert_frame_equal(df, df_reconstructed)
 
+def test_call_dataframe_method_attribute_and_method(sample_csv):
+    path, _ = sample_csv
+    load_dataframe(alias="test_df", path=path)
+
+    # Attribute
+    cols = call_dataframe_method("test_df", "columns")
+    assert isinstance(cols, list)  # JSON-safe
+
+    # Method
+    head_rows = call_dataframe_method("test_df", "head", 2)
+    assert isinstance(head_rows, list)
+    assert len(head_rows) == 2
+
 if __name__ == '__main__':
     
     test_json_safe_dataframe_with_timestamps()
     test_json_safe_correct()
     test_json_safe_describe_correct()
+
+    data = pd.DataFrame({
+        "id": [1, 2, 3],
+        "value": [10, 20, 30],
+        "category": ["A", "B", "A"]
+    })
+    DATAFRAMES["test_df"] = data
+    cols = call_dataframe_method("test_df", "columns")
+

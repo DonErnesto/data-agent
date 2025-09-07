@@ -139,8 +139,12 @@ def call_dataframe_method(alias: str, method: str, *args, **kwargs):
         return buf.getvalue()
 
     # Otherwise, call method
-    result = func(*args, **kwargs)
-
+    # If it's callable (method), call it
+    if callable(func):
+        result = func(*args, **kwargs)
+    else:
+        # It's an attribute (like .columns or .shape)
+        result = func
     # Convert to JSON-safe
     return _json_safe(result)
 
