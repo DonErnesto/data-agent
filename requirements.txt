@@ -5,3 +5,5 @@ numpy
 langchain
 dotenv
 scikit-learn
+pytest
+flake8
