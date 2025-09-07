@@ -1,11 +1,24 @@
 from dotenv import load_dotenv
-from data_agent.agent.actions import (Action, ActionRegistry, CallColumnMethodParams,
-                                        CallDataFrameMethodParams, ListFilesParams,
-                                        LoadDataFrameParams, MergeDataFramesParams,
-                                        call_column_method, call_dataframe_method,
-                                        list_files, load_dataframe, merge_dataframes)
-from data_agent.agent.agent import (Agent, AgentFunctionCallingActionLanguage,
-                                    generate_response)
+
+from data_agent.agent.actions import (
+    Action,
+    ActionRegistry,
+    CallColumnMethodParams,
+    CallDataFrameMethodParams,
+    ListFilesParams,
+    LoadDataFrameParams,
+    MergeDataFramesParams,
+    call_column_method,
+    call_dataframe_method,
+    list_files,
+    load_dataframe,
+    merge_dataframes,
+)
+from data_agent.agent.agent import (
+    Agent,
+    AgentFunctionCallingActionLanguage,
+    generate_response,
+)
 from data_agent.agent.environment import Environment
 from data_agent.agent.goals import Goal
 
@@ -88,8 +101,7 @@ action_registry.register(
     Action(
         name="call_column_method",
         function=call_column_method,
-        description="Apply a method such as mean, min, or max to a single dataframe column."
-        "",
+        description="Apply a method such as mean, min, or max to a single dataframe column." "",
         pydantic_base_model=CallColumnMethodParams,
         terminal=False,
     )
@@ -109,9 +121,7 @@ action_registry.register(
 environment = Environment()
 agent_language = AgentFunctionCallingActionLanguage()
 
-data_analyst = Agent(
-    goals, agent_language, action_registry, generate_response, environment
-)
+data_analyst = Agent(goals, agent_language, action_registry, generate_response, environment)
 
 user_input = """
 You are an AI agent that can perform tasks by using available tools to answer questions about files
@@ -122,12 +132,12 @@ Your workflow is:
 2. Execute the right pandas tool(s) to obtain the necessary information. Multiple calls are needed.
 3. After gathering the required information, analyze the results directly (do not terminate yet).
 4. Formulate a clear, concise, and human-interpretable summary/answer based on the results.
-5. ONLY after you have the complete summary/answer, call the "terminate" tool ONCE with the full 
+5. ONLY after you have the complete summary/answer, call the "terminate" tool ONCE with the full
    answer in its 'message' field.
 
 ⚠️ Rules:
 - Do NOT call "terminate" until you have the full final answer ready.
-- Do NOT drop or omit the analysis results. The entire human-facing explanation must be included 
+- Do NOT drop or omit the analysis results. The entire human-facing explanation must be included
   in the terminate message.
 - If you are unsure or need more information, make additional tool calls instead of terminating
   early.

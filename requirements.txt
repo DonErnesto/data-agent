@@ -7,7 +7,7 @@ dotenv
 scikit-learn
 pytest
 flake8
-pre-commit
+pre-commit==2.6.0
 isort
 black
 flake8-black

@@ -19,9 +19,15 @@ all: clean lint typecheck test
 
 # Install dependencies + package in editable mode
 install:
-	pip install -r requirements.txt
-	pip install -e .
-
+	@echo "🧹 Cleaning pip and pre-commit caches..."
+	pip cache purge || true
+	pre-commit clean || true
+	rm -rf ~/.cache/pre-commit || true
+	rm -rf ~/Library/Caches/pip || true
+	@echo "📦 Installing dependencies..."
+	pip install -e ".[dev]"
+	@echo "🔗 Installing pre-commit hooks..."
+	pre-commit install
 # Run the main entry point
 run:
 	python main.py

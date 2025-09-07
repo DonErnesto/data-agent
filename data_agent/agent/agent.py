@@ -73,9 +73,7 @@ def generate_response(prompt: Prompt) -> str:
 
         else:
             result = response.choices[0].message.content
-            logger.debug(
-                f"DEBUG generate_response. NOT TOOL CALL. response: {response}"
-            )
+            logger.debug(f"DEBUG generate_response. NOT TOOL CALL. response: {response}")
             logger.debug(f"DEBUG generate_response. NOT TOOL CALL. result: {result}")
 
     return result
@@ -99,7 +97,6 @@ class AgentLanguage:
 
 
 class AgentFunctionCallingActionLanguage(AgentLanguage):
-
     def __init__(self):
         super().__init__()
 
@@ -120,7 +117,6 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
         items = memory.get_memories()
         mapped_items = []
         for item in items:
-
             content = item.get("content", None)
             if not content:
                 content = json.dumps(item, indent=4)
@@ -159,7 +155,6 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
         goals: List[Goal],
         memory: Memory,
     ) -> Prompt:
-
         prompt = []
         prompt += self.format_goals(goals)
         prompt += self.format_memory(memory)
@@ -176,7 +171,6 @@ class AgentFunctionCallingActionLanguage(AgentLanguage):
         error: Any,
         retries_left: int,
     ) -> Prompt:
-
         return prompt
 
     def parse_response(self, response: str) -> dict:

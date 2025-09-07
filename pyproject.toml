@@ -23,3 +23,13 @@ profile = "black"
 [tool.flake8]
 max-line-length = 100
 extend-ignore = ["E203", "W503"]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=2.21,<3.0",   # modern enough, works with Python 3.10
+    "black==23.3.0",           # last version supporting Python 3.10
+    "flake8==6.0.0",           # newer versions okay, 6.x is stable
+    "isort==5.12.0",           # pinned for stability
+    "pytest>=7.3,<8.0",
+    "ruamel.yaml==0.15.100",   # pure-Python, no clib dependency
+]

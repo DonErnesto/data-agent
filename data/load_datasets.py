@@ -1,9 +1,11 @@
 import os
-from sklearn.datasets import load_wine, load_diabetes, fetch_california_housing
-import pandas as pd
 
-for dataset_loader, name in zip([load_wine, load_diabetes, fetch_california_housing],
-    ["wine", "diabetes", "california_housing"]):
+import pandas as pd
+from sklearn.datasets import fetch_california_housing, load_diabetes, load_wine
+
+for dataset_loader, name in zip(
+    [load_wine, load_diabetes, fetch_california_housing], ["wine", "diabetes", "california_housing"]
+):
     csv_file_path = f"{name}.csv"
     print(f"processing {name}")
     if not os.path.exists(csv_file_path):
@@ -14,17 +16,16 @@ for dataset_loader, name in zip([load_wine, load_diabetes, fetch_california_hous
         X = dataset.data
         feature_names = dataset.feature_names
 
-
         # Create a pandas DataFrame
         # It's good practice to include the target variable as well for a complete dataset
         df = pd.DataFrame(X, columns=feature_names)
-        try: 
+        try:
             y = dataset.target
             target_names = dataset.target_names
-            df['target'] = y
+            df["target"] = y
             try:
                 # You can replace the integer targets with the actual names if preferred
-                df['target'] = df['target'].apply(lambda x: target_names[x])
+                df["target"] = df["target"].apply(lambda x: target_names[x])
             except TypeError:
                 pass
         except AttributeError:

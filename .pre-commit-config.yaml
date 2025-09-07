@@ -1,11 +1,12 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.4.0
     hooks:
-      - id: check-yaml
-      - id: check-toml
       - id: end-of-file-fixer
+        additional_dependencies: ["ruamel.yaml==0.15.100"]
       - id: trailing-whitespace
+        additional_dependencies: ["ruamel.yaml==0.15.100"]
+
 
   - repo: local
     hooks:
@@ -17,16 +18,16 @@ repos:
         stages: [push]
 
   - repo: https://github.com/psf/black
-    rev: 23.12.1
+    rev: 23.3.0
     hooks:
       - id: black
 
   - repo: https://github.com/PyCQA/isort
-    rev: 5.13.2
+    rev: 5.12.0
     hooks:
       - id: isort
 
   - repo: https://github.com/pycqa/flake8
-    rev: 6.1.0
+    rev: 6.0.0
     hooks:
       - id: flake8

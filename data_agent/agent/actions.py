@@ -77,10 +77,7 @@ def _json_safe(obj):
             columns = [_json_safe(c) for c in obj.columns]
             index = [_json_safe(i) for i in obj.index]  # handles MultiIndex/datetimes
             # Convert each cell via _json_safe to handle Timestamps etc.
-            data = [
-                [_json_safe(v) for v in row]
-                for row in obj.itertuples(index=False, name=None)
-            ]
+            data = [[_json_safe(v) for v in row] for row in obj.itertuples(index=False, name=None)]
             return {"columns": columns, "index": index, "data": data}
         else:
             # For "normal" tables, just return as list of records
@@ -172,9 +169,7 @@ def call_column_method(alias: str, column: str, method: str):
     return _json_safe(getattr(df[column], method)())
 
 
-def merge_dataframes(
-    left: str, right: str, on: str, how: str = "inner", alias: str = None
-):
+def merge_dataframes(left: str, right: str, on: str, how: str = "inner", alias: str = None):
     """
     Merge two dataframes by their alias and store result under a new alias.
     """
@@ -210,9 +205,7 @@ class CallDataFrameMethodParams(BaseModel):
 
     method: str = Field(..., description="The name of the pandas method to call")
     alias: str = Field(..., description="Alias of the dataframe to operate on")
-    args: List[Any] = Field(
-        default_factory=list, description="Positional arguments for the method"
-    )
+    args: List[Any] = Field(default_factory=list, description="Positional arguments for the method")
     kwargs: Dict[str, Any] = Field(
         default_factory=dict, description="Keyword arguments for the method"
     )
@@ -224,9 +217,7 @@ class MergeDataFramesParams(BaseModel):
     left: str = Field(..., description="The alias of the left dataframe.")
     right: str = Field(..., description="The alias of the right dataframe.")
     on: str = Field(..., description="On which column merge the two dataframes")
-    how: str = Field(
-        ..., description="How to merge the two dataframes (per default: 'inner')"
-    )
+    how: str = Field(..., description="How to merge the two dataframes (per default: 'inner')")
     alias: str = Field(..., description="The alias to store the result under.")
 
 
@@ -236,6 +227,7 @@ class CallColumnMethodParams(BaseModel):
     alias: str = Field(..., description="Alias of the dataframe to operate on")
     column: str = Field(..., description="The column on which to apply the method")
     method: str = Field(..., description="The name of the pandas method to call")
+
 
 # Parameter definitions in Pydantic.
 class ListFilesParams(BaseModel):
@@ -261,11 +253,7 @@ def list_column_names_of_dataframe(path: str) -> List[str]:
 def describe_dataframe(path: str) -> str:
     """Describe the contents of a pandas DataFrame."""
     df = load_df_from_path(path)
-    return (
-        df.describe(include="all")
-        .T[["count", "unique", "freq", "mean", "std"]]
-        .to_string()
-    )
+    return df.describe(include="all").T[["count", "unique", "freq", "mean", "std"]].to_string()
 
 
 def show_datatype_of_column(path: str, column_name: str) -> str:
@@ -280,8 +268,10 @@ def describe_column(path: str, column_name: str) -> str:
     description_column = df[column_name].describe().to_string()
     normalized_value_counts = df[column_name].value_counts(normalize=True, dropna=False)
     normalized_perc = (normalized_value_counts * 100).map("{:.3f}%".format).to_string()
-    return f"Description of column: {description_column} \n \n"\
+    return (
+        f"Description of column: {description_column} \n \n"
         f"Normalized value counts: {normalized_perc}"
+    )
 
 
 def translate_pd_to_human(message) -> None:
@@ -295,9 +285,7 @@ def translate_pd_to_human(message) -> None:
 def outer_join_on_key(df_1_path: str, df_2_path: str, join_key="sbti_id"):
     df_1 = load_df_from_path(df_1_path)
     df_2 = load_df_from_path(df_2_path)
-    return df_1.merge(
-        df_2, how="outer", on="sbti_id", suffixes=("_prev", "_curr"), indicator=True
-    )
+    return df_1.merge(df_2, how="outer", on="sbti_id", suffixes=("_prev", "_curr"), indicator=True)
 
 
 def compare_similarity_column_joined_on_key(
@@ -317,14 +305,15 @@ def compare_similarity_column_joined_on_key(
     ).sum() / number_joined
     both_joined_percent_diff = f"{both_joined_frac_diff:.3%}"
 
-    merge_str = "The percentages of merges (both, only old, only new) are: \n"\
-    f" {percentage_merge_stats}\n"
-    identical_str = f"The percentage of values that could be merged that are unequal is"\
-    f"{both_joined_percent_diff}"
+    merge_str = (
+        "The percentages of merges (both, only old, only new) are: \n"
+        f" {percentage_merge_stats}\n"
+    )
+    identical_str = (
+        f"The percentage of values that could be merged that are unequal is"
+        f"{both_joined_percent_diff}"
+    )
     return f"Analyzed similarity of column {column_name}: {merge_str}. {identical_str}."
-
-
-
 
 
 class ListColumnNamesOfDataFrameParams(BaseModel):
@@ -343,9 +332,7 @@ class ShowDatatypeOfColumnParams(BaseModel):
     """Show the datatype of a column in a pandas DataFrame."""
 
     path: str = Field(..., description="The path to the dataframe to read from")
-    column_name: str = Field(
-        ..., description="The name of the column to show the datatype of."
-    )
+    column_name: str = Field(..., description="The name of the column to show the datatype of.")
 
 
 class DescribeColumnParams(BaseModel):

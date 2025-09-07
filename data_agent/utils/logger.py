@@ -4,9 +4,7 @@ import traceback
 
 
 class CustomLogger:
-    def __init__(
-        self, log_file="custom_agent_log.log", console_level="INFO", file_level="DEBUG"
-    ):
+    def __init__(self, log_file="custom_agent_log.log", console_level="INFO", file_level="DEBUG"):
         self.log_file = log_file
         self.console_level = self._get_level_value(console_level)
         self.file_level = self._get_level_value(file_level)
@@ -14,18 +12,14 @@ class CustomLogger:
 
     def _get_level_value(self, level_name):
         levels = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
-        return levels.get(
-            level_name.upper(), 0
-        )  # Default to lowest level if name is unknown
+        return levels.get(level_name.upper(), 0)  # Default to lowest level if name is unknown
 
     def _ensure_log_file_exists(self):
         """Ensure the log file exists upon initialization."""
         if not os.path.exists(self.log_file):
             try:
                 with open(self.log_file, "w") as f:
-                    f.write(
-                        f"Log file created on {time.strftime('%Y-%m-%d %H:%M:%S%z')}\n"
-                    )
+                    f.write(f"Log file created on {time.strftime('%Y-%m-%d %H:%M:%S%z')}\n")
             except IOError as e:
                 print(f"ERROR: Could not create log file {self.log_file}: {e}")
 

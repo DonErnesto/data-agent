@@ -5,20 +5,23 @@ import os
 import pandas as pd
 import pytest
 
-from data_agent.agent.actions import (DATAFRAMES, _json_safe,
-                                      call_column_method,
-                                      call_dataframe_method, list_files,
-                                      load_dataframe)
+from data_agent.agent.actions import (
+    DATAFRAMES,
+    _json_safe,
+    call_column_method,
+    call_dataframe_method,
+    list_files,
+    load_dataframe,
+)
 
 CSV_FILENAME = "sample.csv"
+
 
 # --- Fixtures ---
 @pytest.fixture
 def sample_csv(tmp_path):
     """Create a temporary CSV file with sample data."""
-    data = pd.DataFrame(
-        {"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]}
-    )
+    data = pd.DataFrame({"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]})
     file_path = tmp_path / CSV_FILENAME
     data.to_csv(file_path, index=False)
     print(file_path)
@@ -96,9 +99,7 @@ def test_column_mean_non_numeric(sample_csv):
         call_dataframe_method("test_df", "mean", column="category")
 
 
-@pytest.mark.parametrize(
-    "method,args", [("mean", ()), ("max", ()), ("min", ()), ("std", ())]
-)
+@pytest.mark.parametrize("method,args", [("mean", ()), ("max", ()), ("min", ()), ("std", ())])
 def test_json_serializable_column_results(sample_csv, method, args):
     path, _ = sample_csv
     load_dataframe(alias="test_df", path=path)
@@ -127,9 +128,7 @@ def test_json_safe_dataframe_with_timestamps():
 
 
 def test_json_safe_correct():
-    df = pd.DataFrame(
-        {"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]}
-    )
+    df = pd.DataFrame({"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]})
     safe = _json_safe(df)
     df_reconstructed = pd.DataFrame.from_dict(safe)
     pd.testing.assert_frame_equal(df, df_reconstructed)
@@ -137,9 +136,7 @@ def test_json_safe_correct():
 
 
 def test_json_safe_describe_correct():
-    data = pd.DataFrame(
-        {"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]}
-    )
+    data = pd.DataFrame({"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]})
     df = data.describe()
     print(df)
     safe = _json_safe(df)
@@ -168,13 +165,10 @@ def test_call_dataframe_method_attribute_and_method(sample_csv):
 
 
 if __name__ == "__main__":
-
     test_json_safe_dataframe_with_timestamps()
     test_json_safe_correct()
     test_json_safe_describe_correct()
 
-    data = pd.DataFrame(
-        {"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]}
-    )
+    data = pd.DataFrame({"id": [1, 2, 3], "value": [10, 20, 30], "category": ["A", "B", "A"]})
     DATAFRAMES["test_df"] = data
     cols = call_dataframe_method("test_df", "columns")
