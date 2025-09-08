@@ -1,6 +1,4 @@
 import json
-import pickle
-import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Dict, List
 
@@ -8,6 +6,7 @@ from litellm import completion
 
 from ..utils.logger import CustomLogger
 from .actions import Action, ActionRegistry
+from .connection import cached_completion
 from .environment import Environment
 from .goals import Goal
 from .memory import Memory
@@ -35,8 +34,7 @@ def generate_response(prompt: Prompt) -> str:
         )
         result = response.choices[0].message.content
     else:
-        response = completion(
-            model="openai/gpt-4-turbo-2024-04-09",
+        response = cached_completion(
             messages=messages,
             temperature=0.1,
             tools=tools,
@@ -45,22 +43,22 @@ def generate_response(prompt: Prompt) -> str:
 
         # --- Save the raw response object to disk ---
         # Use a timestamp for the filename
-        timestamp_str = time.strftime("%Y%m%d_%H%M%S")
-        response_filename = f"tmp/raw_llm_response_{timestamp_str}.pkl"
-        try:
-            with open(response_filename, "wb") as f:
-                pickle.dump(response, f)
-            logger.info(f"Saved raw LLM response to {response_filename}")
-            # To load this file later in another cell:
-            # import pickle
-            # with open('raw_llm_response_YYYYMMDD_HHMMSS.pkl', 'rb') as f:
-            #     loaded_response = pickle.load(f)
-            # print(loaded_response) # You can then inspect the loaded_response object
-        except Exception as save_e:
-            logger.error(
-                f"Error saving raw LLM response to {response_filename}: {save_e}",
-                exc_info=True,
-            )
+        # timestamp_str = time.strftime("%Y%m%d_%H%M%S")
+        # response_filename = f"tmp/raw_llm_response_{timestamp_str}.pkl"
+        # try:
+        #     with open(response_filename, "wb") as f:
+        #         pickle.dump(response, f)
+        #     logger.info(f"Saved raw LLM response to {response_filename}")
+        #     # To load this file later in another cell:
+        #     # import pickle
+        #     # with open('raw_llm_response_YYYYMMDD_HHMMSS.pkl', 'rb') as f:
+        #     #     loaded_response = pickle.load(f)
+        #     # print(loaded_response) # You can then inspect the loaded_response object
+        # except Exception as save_e:
+        #     logger.error(
+        #         f"Error saving raw LLM response to {response_filename}: {save_e}",
+        #         exc_info=True,
+        #     )
         # --- End of saving ---
 
         if response.choices[0].message.tool_calls:
