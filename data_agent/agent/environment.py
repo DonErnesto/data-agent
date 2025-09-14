@@ -1,4 +1,3 @@
-import time
 import traceback
 from typing import Any
 
@@ -28,5 +27,6 @@ class Environment:
         return {
             "tool_executed": True,
             "result": result,
-            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            # Exclude timestamp for caching!!!
+            # "timestamp": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         }
