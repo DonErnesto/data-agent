@@ -67,7 +67,7 @@ def cached_completion(messages, tools=None, temperature=0.1, max_tokens=1024, us
             response = load_response(cache_file)
             return response
         else:
-            print(f"---can't find         : {cache_file}")
+            logger.debug(f"---can't find         : {cache_file}")
 
     # API request
     response = completion(
