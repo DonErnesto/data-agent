@@ -63,7 +63,7 @@ def cached_completion(messages, tools=None, temperature=0.1, max_tokens=1024, us
 
     if use_cache:
         if cache_file.exists():
-            logger.debug(f"---loading cached file: {cache_file} ...")
+            logger.info(f"Loading cached file: {cache_file} ...")
             response = load_response(cache_file)
             return response
         else:
